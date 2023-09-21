@@ -1,7 +1,7 @@
 module PriorityChannels
 export PriorityChannel
 using DataStructures
-import Base: notify_error, register_taskdone_hook, check_channel_state
+import Base: notify_error, check_channel_state #, register_taskdone_hook
 
 
 const PriorityElement{T,I<:Real} = Tuple{T,I}
@@ -133,10 +133,16 @@ function Base.close(c::PriorityChannel)
 end
 Base.isopen(c::PriorityChannel) = (c.state == :open)
 
-function Base.bind(c::PriorityChannel, task::Task)
-    ref = WeakRef(c)
-    register_taskdone_hook(task, tsk->Base.close_chnl_on_taskdone(tsk, ref))
-    c
+# function Base.bind(c::PriorityChannel, task::Task)
+#     ref = WeakRef(c)
+#     register_taskdone_hook(task, tsk->Base.close_chnl_on_taskdone(tsk, ref))
+#     c
+# end
+
+function Base.bind(c::Channel, task::Task)
+    T = Task(() -> close_chnl_on_taskdone(task, c))
+    _wait2(task, T)
+    return c
 end
 
 """
